@@ -270,7 +270,7 @@ end LazyList
 private unsafe def List.toLazyUnsafe {α : Type u} (xs : List α) : LazyList α :=
   unsafeCast xs
 
-@[implementedBy List.toLazyUnsafe]
+@[implemented_by List.toLazyUnsafe]
 def List.toLazy {α : Type u} : List α → LazyList α
 | []     => LazyList.nil
 | (h::t) => LazyList.cons h (toLazy t)

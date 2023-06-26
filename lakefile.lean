@@ -5,10 +5,10 @@ package leancolls {
   precompileModules := true
 }
 
-@[defaultTarget]
+@[default_target]
 lean_lib LeanColls
 
-@[defaultTarget]
+@[default_target]
 lean_exe test {
   root := `Main
 }
