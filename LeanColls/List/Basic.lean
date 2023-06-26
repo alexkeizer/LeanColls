@@ -13,13 +13,13 @@ def foldl' : (l : List τ) → (β → (x : τ) → x ∈ l → β) → β → �
 | []   , _, acc => acc
 | x::xs, f, acc =>
   have h' : ∀ {x'}, x' ∈ xs → x' ∈ x::xs := List.Mem.tail x
-  foldl' xs (λ acc x h => f acc x (h' h)) (f acc x (List.Mem.head _ _))
+  foldl' xs (λ acc x h => f acc x (h' h)) (f acc x (List.Mem.head _))
 
 def foldr' : (l : List τ) → ((x : τ) → x ∈ l → β → β) → β → β
 | []   , _, acc => acc
 | x::xs, f, acc =>
   have h' : ∀ {x'}, x' ∈ xs → x' ∈ x::xs := List.Mem.tail x
-  f x (List.Mem.head _ _) (foldr' xs (λ x h acc => f x (h' h) acc) acc)
+  f x (List.Mem.head _) (foldr' xs (λ x h acc => f x (h' h) acc) acc)
 
 theorem foldl_eq_foldl' (c : List τ) (f : β → τ → β) (acc : β)
   : foldl f acc c = foldl' c (λ acc x _ => f acc x) acc
@@ -199,7 +199,7 @@ theorem mem_of_map' (L : List τ) (f : (x : _) → _ → τ')
   : ∀ x, (h : x ∈ L) → f x h ∈ L.map' f
   := by
   intro x h
-  simp [map', subtypeByMem]
+  simp only [map', subtypeByMem]
   suffices ∀ rest h_rest, x ∈ rest → f x h ∈ map (fun ⟨x,h⟩ => f x h)
                   (subtypeByMem.aux L rest h_rest)
     from this L (by simp) h
@@ -211,7 +211,7 @@ theorem mem_of_map' (L : List τ) (f : (x : _) → _ → τ')
   case head =>
     simp [subtypeByMem.aux]
   case tail h_x =>
-  simp [subtypeByMem.aux]
+  simp only [map, find?, mem_cons, Subtype.exists]
   apply Or.inr
   apply ih
   exact h_x
@@ -219,7 +219,7 @@ theorem mem_of_map' (L : List τ) (f : (x : _) → _ → τ')
 theorem subtypeByMem_map' (L : List τ) (f : (x : τ) → x ∈ L → τ')
   : subtypeByMem (L.map' f) = L.map' (fun x h => ⟨f x h, mem_of_map' _ _ _ h⟩)
   := by
-  simp [map', subtypeByMem]
+  simp only [map', subtypeByMem]
   suffices ∀ rest
     (h_rest : (x : τ) → x ∈ rest → x ∈ L)
     (h_one : (x : τ')
@@ -232,7 +232,7 @@ theorem subtypeByMem_map' (L : List τ) (f : (x : τ) → x ∈ L → τ')
     map (fun ⟨x,h⟩ => { val := f x h, property := h' x h })
       (subtypeByMem.aux L rest h_rest)
     from this L (by simp)
-      (by intro x h; simp [map', h, subtypeByMem])
+      (by intro x h; simp only [map', h, subtypeByMem])
       (by intro x h; simp [mem_of_map'])
   intro rest h_rest h_one h'
   induction rest with
@@ -250,49 +250,49 @@ theorem foldl'_append {β : Type u} (L₁ L₂ : List τ) (f : β → (x : τ) �
   rw [subtypeByMem_append]
   simp [foldl_map, foldl_append]
 
-def sum [AddMonoid τ] : List τ → τ
-| [] => 0
-| x::xs => x + sum xs
+-- def sum [AddMonoid τ] : List τ → τ
+-- | [] => 0
+-- | x::xs => x + sum xs
 
-theorem get_le_sum (L : List Nat) (i : Nat) (h_i : i < L.length)
-  : L.get ⟨i,h_i⟩ ≤ L.sum
-  := by
-  induction L generalizing i with
-  | nil =>
-    contradiction
-  | cons x xs ih =>
-    match i with
-    | 0 =>
-      simp [get, sum]
-      apply Nat.le_add_right
-    | i+1 =>
-      simp [get, sum]
-      rw [←Nat.zero_add (get _ _)]
-      apply Nat.add_le_add (Nat.zero_le x)
-      apply ih
+-- theorem get_le_sum (L : List Nat) (i : Nat) (h_i : i < L.length)
+--   : L.get ⟨i,h_i⟩ ≤ L.sum
+--   := by
+--   induction L generalizing i with
+--   | nil =>
+--     contradiction
+--   | cons x xs ih =>
+--     match i with
+--     | 0 =>
+--       simp [get, sum]
+--       apply Nat.le_add_right
+--     | i+1 =>
+--       simp [get, sum]
+--       rw [←Nat.zero_add (get _ _)]
+--       apply Nat.add_le_add (Nat.zero_le x)
+--       apply ih
 
-theorem sum_set (L : List Nat) (i : Nat) (w : Nat) (h_i : i < L.length)
-  : sum (L.set i w) = sum L - (L.get ⟨i,h_i⟩) + w
-  := by
-  induction L generalizing i with
-  | nil => contradiction
-  | cons x xs ih =>
-  match xs, i with
-  | [], 0 =>
-    simp [set, sum, get]
-  | [], _+1 =>
-    contradiction
-  | y :: z, 0 =>
-    simp [set, sum, get]
-    rw [Nat.add_comm x, Nat.add_sub_cancel, Nat.add_comm w]
-  | y :: z, i+1 =>
-    simp [set, sum, get]
-    rw [ih]
-    generalize h : get _ _ = g
-    have : g ≤ y + sum z := by
-      rw [←h]
-      apply get_le_sum
-    clear h ih
-    simp [sum]
-    rw [Nat.add_sub_assoc this,
-        Nat.add_assoc x]
+-- theorem sum_set (L : List Nat) (i : Nat) (w : Nat) (h_i : i < L.length)
+--   : sum (L.set i w) = sum L - (L.get ⟨i,h_i⟩) + w
+--   := by
+--   induction L generalizing i with
+--   | nil => contradiction
+--   | cons x xs ih =>
+--   match xs, i with
+--   | [], 0 =>
+--     simp [set, sum, get]
+--   | [], _+1 =>
+--     contradiction
+--   | y :: z, 0 =>
+--     simp [set, sum, get]
+--     rw [Nat.add_comm x, Nat.add_sub_cancel, Nat.add_comm w]
+--   | y :: z, i+1 =>
+--     simp [set, sum, get]
+--     rw [ih]
+--     generalize h : get _ _ = g
+--     have : g ≤ y + sum z := by
+--       rw [←h]
+--       apply get_le_sum
+--     clear h ih
+--     simp [sum]
+--     rw [Nat.add_sub_assoc this,
+--         Nat.add_assoc x]
