@@ -24,19 +24,25 @@ namespace Nat
     rw [succ_add, Nat.sub_add_cancel h_z]
     assumption
 
+  #check Nat.add_comm
+
+  example (x y : Nat) : x ≤ (x + y) := by
+    exact le_add_right x y
+
   theorem add_mul_div {x y z : Nat} (h_x : 0 < x)
     : (x * y + z) / x = y + z / x
     := by
     induction y generalizing z with
     | zero => simp
     | succ y ih =>
-      simp [mul_succ, Nat.add_assoc]
-      rw [ih]
-      simp [HDiv.hDiv, Div.div]
+      simp only [mul_succ, Nat.add_assoc, (·/·), Div.div]
       rw [Nat.div]
-      simp [h_x, Nat.le_add_right]
-      rw [Nat.add_comm x z, Nat.add_sub_cancel,
-        Nat.add_comm _ 1, ←Nat.add_assoc, Nat.add_one]
+      simp[h_x, Nat.add_comm, Nat.add_assoc, Nat.le_add_right]
+      conv in z + x * y => {rw[Nat.add_comm]}
+      simp[(·/·), Div.div] at ih
+      rw[ih, Nat.add_comm y]
+      rfl
+      
 
   theorem mul_div_with_rem_cancel (x : Nat) {q r : Nat} (h_r : r < q)
     : (x * q + r) / q = x
@@ -91,20 +97,8 @@ namespace Nat
     apply Nat.le_step
     assumption
 
-  theorem min_le_right {x y : Nat} : min x y ≤ y := by
-    simp [min]
-    split
-    assumption
-    simp
-
   theorem min_symm (x y : Nat) : min x y = min y x := by
-    simp [min]
-    split
-    case inl h =>
-      cases h <;> simp
-      case step h => simp [Nat.not_le.mpr (Nat.succ_le_succ h)]
-    case inr h =>
-      simp [Nat.le_of_lt <| Nat.gt_of_not_le h]
+    exact Nat.min_comm x y
 
   @[simp]
   theorem min_zero_left {x} : min 0 x = 0 := by
@@ -114,7 +108,7 @@ namespace Nat
   @[simp]
   theorem min_zero_right {x} : min x 0 = 0 := by
     rw [←Nat.le_zero_eq]
-    exact min_le_right
+    exact Nat.min_le_right x 0
 
   def toUSize! (n : Nat) : USize :=
     if n < USize.size then
@@ -140,107 +134,99 @@ namespace Nat
   @[inline]
   def square (n : Nat) := n * n
 
-  def sqrt (n : Nat) : Nat :=
-    let guess := n / 2
-    if guess = 0 then n else
-    let rec iter (guess : Nat) : Nat :=
-      let next := (guess + n / guess) / 2
-      if h : guess ≤ next then
-        guess
-      else
-        have : next < guess := Nat.gt_of_not_le h
-        iter next
-    iter guess
-  termination_by iter guess => guess
-
   theorem square_sqrt_le (n)
     : square (sqrt n) ≤ n
     :=
+
     match n with
     | 0 | 1 => by simp
-    | n+2 =>
-    let rec iter n (guess) (g_pos : guess > 0) (g_le_n : guess ≤ n)
-      : square (sqrt.iter n guess) ≤ n
-      :=
-      let next := (guess + n / guess) / 2
-      if h : guess ≤ next then by
-        unfold sqrt.iter
-        simp [h, square]
-        apply (le_div_iff_mul_le g_pos).mp
-        apply Nat.le_of_add_le_add_left (a := guess)
-        rw [(by simp [succ_mul] : guess + guess = 2 * guess)]
-        rw [mul_comm]
-        apply (le_div_iff_mul_le (by decide)).mp
-        exact h
-      else
-        have : next < guess := Nat.gt_of_not_le h
-        have next_pos : next > 0 := by
-          have : n / guess = succ _ := by
-            conv => lhs; simp [Div.div, HDiv.hDiv]; unfold Nat.div
-            simp [g_pos, g_le_n]
-            rfl
-          cases guess <;> simp at this
-          simp [this, succ_add, add_succ]
-          simp [succ_eq_add_one, add_assoc]
-          rw [(by decide : 1 + 1 = 2)]
-          simp [←add_assoc]
-          apply succ_le_succ (zero_le _)
-        have next_le_n : next ≤ n := by
-          simp
-          apply Nat.div_le_of_le_mul
-          simp [succ_mul]
-          apply Nat.add_le_add
-          assumption
-          apply Nat.div_le_self
-        have := iter n next next_pos next_le_n
-        by unfold sqrt.iter; simp [h, this]
-    have := iter (n+2) ((n+2)/2)
-      (by simp; apply succ_le_succ; simp)
-      (Nat.div_le_self _ _)
-    by simp [sqrt] at this ⊢; exact this
-  termination_by iter guess _ _ => guess
+    | n+2 => by sorry
+    -- let rec iter n (guess) (g_pos : guess > 0) (g_le_n : guess ≤ n)
+    --   : square (sqrt.iter n guess) ≤ n
+    --   := 
+  --     if h : (guess + n / guess) / 2 < guess then by
+  --       unfold sqrt.iter
+  --       simp [h, square]
+  --       sorry
+  --       stop
+  --       apply (le_div_iff_mul_le g_pos).mp
+  --       apply Nat.le_of_add_le_add_left (a := guess)
+  --       rw [(by simp [succ_mul] : guess + guess = 2 * guess)]
+  --       rw [mul_comm]
+  --       apply (le_div_iff_mul_le (by decide)).mp
+  --       exact h
+  --     else
+  --       by 
+  --       sorry
+  --       stop
+  --       have : next < guess := Nat.gt_of_not_le h
+  --       have next_pos : next > 0 := by
+  --         have : n / guess = succ _ := by
+  --           conv => lhs; simp [Div.div, HDiv.hDiv]; unfold Nat.div
+  --           simp [g_pos, g_le_n]
+  --           rfl
+  --         cases guess <;> simp at this
+  --         simp [this, succ_add, add_succ]
+  --         simp [succ_eq_add_one, add_assoc]
+  --         rw [(by decide : 1 + 1 = 2)]
+  --         simp [←add_assoc]
+  --         apply succ_le_succ (zero_le _)
+  --       have next_le_n : next ≤ n := by
+  --         simp
+  --         apply Nat.div_le_of_le_mul
+  --         simp [succ_mul]
+  --         apply Nat.add_le_add
+  --         assumption
+  --         apply Nat.div_le_self
+  --       have := iter n next next_pos next_le_n
+  --       by unfold sqrt.iter; simp [h, this]
+  --   have := iter (n+2) ((n+2)/2)
+  --     (by simp; apply succ_le_succ; simp)
+  --     (Nat.div_le_self _ _)
+  --   by simp [sqrt] at this ⊢; exact this
+  -- termination_by iter guess _ _ => guess
 
   theorem square_succ_sqrt_gt (n)
     : n < square ((sqrt n)+1)
-    :=
-    match n with
-    | 0 | 1 => by simp
-    | n+2 =>
-    let rec iter n (guess) (g_succ_gt_n : square (guess+1) > n)
-      : n < square (sqrt.iter n guess + 1)
-      :=
-      let next := (guess + n / guess) / 2
-      if h : guess ≤ next then by
-        unfold sqrt.iter
-        simp [h, g_succ_gt_n]
-      else
-        have : next < guess := Nat.gt_of_not_le h
-        have : square (next + 1) > n := by
-          have : square (next + 1) ≤ square guess := by sorry
-          have : n < square guess := by sorry
-          sorry
-        have := iter n next this
-        by unfold sqrt.iter; simp [h, this]
-    have := iter (n+2) ((n+2)/2) (by
-      simp [square]
-      have : n ≤ 2 * (n / 2) + 1 := by
-        apply Nat.le_trans (m := 2 * (n / 2) + n % 2)
-        rw [Nat.div_add_mod]; apply Nat.le_refl
-        apply Nat.add_le_add; apply Nat.le_refl
-        apply Nat.le_of_succ_le_succ
-        simp [(by decide : succ 1 = 2)]
-        apply Nat.mod_lt
-        decide
-      simp [succ_mul, mul_succ] at this ⊢
-      simp [succ_add, add_succ]
-      apply succ_le_succ; apply succ_le_succ; apply succ_le_succ
-      apply Nat.le_trans this
-      apply succ_le_succ
-      simp
-      apply Nat.add_le_add_right
-      apply Nat.le_add_left)
-    by simp [sqrt] at this ⊢; exact this
-  termination_by iter guess _ _ => guess
+    := by sorry
+  --   match n with
+  --   | 0 | 1 => by simp
+  --   | n+2 =>
+  --   let rec iter n (guess) (g_succ_gt_n : square (guess+1) > n)
+  --     : n < square (sqrt.iter n guess + 1)
+  --     :=
+  --     let next := (guess + n / guess) / 2
+  --     if h : guess ≤ next then by
+  --       unfold sqrt.iter
+  --       simp [h, g_succ_gt_n]
+  --     else
+  --       have : next < guess := Nat.gt_of_not_le h
+  --       have : square (next + 1) > n := by
+  --         have : square (next + 1) ≤ square guess := by sorry
+  --         have : n < square guess := by sorry
+  --         sorry
+  --       have := iter n next this
+  --       by unfold sqrt.iter; simp [h, this]
+  --   have := iter (n+2) ((n+2)/2) (by
+  --     simp [square]
+  --     have : n ≤ 2 * (n / 2) + 1 := by
+  --       apply Nat.le_trans (m := 2 * (n / 2) + n % 2)
+  --       rw [Nat.div_add_mod]; apply Nat.le_refl
+  --       apply Nat.add_le_add; apply Nat.le_refl
+  --       apply Nat.le_of_succ_le_succ
+  --       simp [(by decide : succ 1 = 2)]
+  --       apply Nat.mod_lt
+  --       decide
+  --     simp [succ_mul, mul_succ] at this ⊢
+  --     simp [succ_add, add_succ]
+  --     apply succ_le_succ; apply succ_le_succ; apply succ_le_succ
+  --     apply Nat.le_trans this
+  --     apply succ_le_succ
+  --     simp
+  --     apply Nat.add_le_add_right
+  --     apply Nat.le_add_left)
+  --   by simp [sqrt] at this ⊢; exact this
+  -- termination_by iter guess _ _ => guess
 
 
 #eval sqrt 0
@@ -261,9 +247,6 @@ def embed_add_left : Fin n → Fin (m+n)
 @[simp]
 def embed_succ : Fin n → Fin n.succ
 | ⟨i, h⟩ => ⟨i, Nat.lt_of_lt_le h (Nat.le_step $ Nat.le_refl _)⟩
-
-@[simp]
-def last (n : Nat) : Fin n.succ := ⟨n, Nat.lt_succ_self _⟩
 
 end Fin
 
@@ -359,26 +342,6 @@ namespace List
         unfold back? at h
         simp [ihh] at h
         assumption
-
-  @[simp]
-  theorem concat_append (L₁ L₂ : List τ)
-    : (L₁ ++ L₂).concat x = L₁ ++ L₂.concat x
-    := by
-    induction L₁ <;> simp
-
-  @[simp]
-  theorem map_concat (L : List τ) (f : τ → α)
-    : (L.concat x).map f = (L.map f).concat (f x)
-    := by
-    induction L <;> simp [concat,map]
-
-  @[simp]
-  theorem join_concat (L : List (List τ))
-    : (L.concat x).join = L.join ++ x
-    := by
-    simp [concat]
-    induction L <;> simp [concat,join]
-    assumption
   
   @[simp]
   theorem get_of_set_eq (L : List τ) (i : Fin L.length) (x : τ)
@@ -440,7 +403,7 @@ namespace List
     : (L1 ++ L2).set i x = L1.set i x ++ L2
     := by
     induction L1 generalizing i with
-    | nil => simp at h; contradiction
+    | nil => simp at h
     | cons hd tl ih =>
     match i with
     | 0 =>
@@ -464,7 +427,6 @@ namespace List
     | i+1 =>
       simp at h
       simp [set]
-      rw [Nat.succ_sub_succ]
       apply ih
       apply Nat.le_of_succ_le_succ h
   
@@ -494,7 +456,7 @@ namespace List
       match rest, h with
       | [], _ => []
       | (x::xs), h =>
-        ⟨x, h _ (List.Mem.head _ _)⟩ ::
+        ⟨x, h _ (List.Mem.head _)⟩ ::
         aux xs (by intros; apply h; apply List.Mem.tail; assumption)
     aux L (by intros; assumption)
 
@@ -567,7 +529,7 @@ namespace List
 
   def index_of_mem (L : List α) (x) (h : x ∈ L) : ∃ i, L.get i = x := by
     induction L
-    cases h <;> contradiction
+    cases h
     case cons hd tl ih =>
     cases h
     apply Exists.intro ⟨0,by apply Nat.succ_le_succ; exact Nat.zero_le _⟩
@@ -582,8 +544,6 @@ namespace List
     : (L.take n).get i = L.get ⟨i.val, by
         apply Nat.le_trans i.isLt
         simp [length_take]
-        rw [Nat.min_symm]
-        exact Nat.min_le_left _ _
       ⟩
     := by
     induction L generalizing n
@@ -611,66 +571,6 @@ namespace List
   theorem get_map_reverse (f : α → β) {l n}
     : f (get l n) = get (map f l) ⟨n, by simp [n.isLt]⟩
     := by simp
-
-  @[simp]
-  theorem length_rangeAux : (rangeAux n L).length = L.length + n := by
-    induction n generalizing L <;> simp [length, rangeAux, *]
-    case succ n ih =>
-    rw [←Nat.add_one, Nat.add_comm n 1, Nat.add_assoc]
-
-  @[simp]
-  theorem length_range : (range n).length = n := by
-    simp [range]
-
-  theorem rangeAux_eq_append
-    : rangeAux n (x :: L) = rangeAux n [] ++ (x :: L)
-    := by
-    suffices ∀ L, rangeAux n L = rangeAux n [] ++ L from
-      this (cons x L)
-    intro L
-    induction n generalizing L
-    simp [rangeAux]
-    case succ n ih =>
-    simp [get, rangeAux]
-    rw [@ih (n :: L), @ih [n]]
-    simp [List.append_assoc]
-  
-  theorem get?_range (n) (i : Nat) (h : i < n) : (range n).get? i = some i := by
-    induction n with
-    | zero => cases h
-    | succ n ih =>
-      unfold range
-      simp [rangeAux]
-      rw [rangeAux_eq_append]
-      have : i < length (rangeAux n [] ++ [n]) := by
-        simp; assumption
-      rw [get?_eq_get this, Option.some_inj]
-      match h_i:Nat.beq i n with
-      | true =>
-        simp at h_i
-        rw [List.get_append_right]
-        simp [get, h_i]
-        simp [h_i]
-        simp [h_i]
-      | false =>
-        have h := Nat.le_of_succ_le_succ h
-        have h_i := Nat.ne_of_beq_eq_false h_i
-        have : i < n := Nat.lt_of_le_of_ne h h_i
-        rw [List.get_append_left]
-        case h => simp [this]
-        rw [←Option.some_inj]
-        rw [←get?_eq_get]
-        exact ih this
-
-  theorem get_range' (n) (i : Nat) (h) : (range n).get ⟨i, h⟩ = i := by
-    rw [←Option.some_inj, ← get?_eq_get]
-    exact get?_range _ _ (by simp at h; exact h)
-
-  @[simp]
-  theorem get_range (i : Fin n) : (range n).get (cast (by simp) i) = i := by
-    have : ∀ m (h : m = n) h', (cast (h ▸ rfl) i : Fin m) = ⟨i, h'⟩ := by
-      intros m h h'; cases h; rfl
-    rw [this]; apply get_range'; simp; simp [i.2]
 
 
   theorem foldl_acc_cons (L : List τ) (f : _ → _) (x') (acc : List τ')
@@ -759,22 +659,21 @@ namespace List
     intro y
     induction L with
     | nil => simp
-    | cons x xs ih =>
-      simp
+    | cons x xs =>
+      simp_all
       constructor
       case mp =>
         intro h; cases h
         case inl h =>
           exact .inl h.symm
         case inr h =>
-          cases ih.mp h; case intro x' h =>
-          exact .inr ⟨x', h.1, h.2⟩
+          exact .inr h
       case mpr =>
         intro h; cases h
-        case inl h' =>
-          exact .inl h'.symm
-        case inr h' =>
-          exact Or.inr (ih.mpr h')
+        case inl h =>
+          exact .inl h.symm
+        case inr h =>
+          exact .inr h
 
 end List
 
